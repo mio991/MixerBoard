@@ -1,0 +1,3 @@
+﻿IAudioSessionEnumerator
+IAudioSessionManager2
+IMMDeviceEnumerator
