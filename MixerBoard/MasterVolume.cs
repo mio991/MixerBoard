@@ -6,7 +6,7 @@ using Windows.Win32.Media.Audio.Endpoints;
 
 namespace MixerBoard
 {
-        internal class MasterVolume : IAudioSession, IAudioEndpointVolumeCallback, INotifyPropertyChanged
+        internal class MasterVolume : IAudioSession, IAudioEndpointVolumeCallback
         {
                 private readonly Guid guid = Guid.NewGuid();
                 private readonly IAudioEndpointVolume audioEndpointVolume;

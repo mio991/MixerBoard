@@ -1,25 +1,17 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Runtime.InteropServices;
+using System.Diagnostics;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Media.Audio;
-using Windows.Win32.System.Com;
 
 namespace MixerBoard
 {
-        public interface IAudioSession : IDisposable
-        {
-                string DisplayName { get; }
-                float Volume { get; }
-
-                void SetVolume(float volume);
-        }
-
-        internal class AudioSession : IAudioSession, IAudioSessionEvents, INotifyPropertyChanged
+        internal class AudioSession : IAudioSession, IAudioSessionEvents
         {
                 private readonly Guid guid = Guid.NewGuid();
                 private readonly IAudioSessionControl audioSessionControl;
+                private readonly ISimpleAudioVolume simpleAudioVolume;
 
                 public string DisplayName { get; private set; }
                 public float Volume { get; private set; }
@@ -32,8 +24,21 @@ namespace MixerBoard
                         audioSessionControl.GetDisplayName(out var name);
                         DisplayName = name.ToString();
 
+                        if (audioSessionControl is IAudioSessionControl2 control2)
+                        {
+                                control2.GetProcessId(out var processId);
+                                DisplayName = Process.GetProcessById(BitConverter.ToInt32(BitConverter.GetBytes(processId)))
+                                        .ProcessName;
+                                audioSessionControl.SetDisplayName(DisplayName, guid);
+                        }
+
                         audioSessionControl.RegisterAudioSessionNotification(this);
-                        this.audioSessionControl = audioSessionControl;                        
+                        this.audioSessionControl = audioSessionControl;
+
+                        simpleAudioVolume = (ISimpleAudioVolume)audioSessionControl;
+
+                        simpleAudioVolume.GetMasterVolume(out float volume);
+                        Volume = volume;
                 }
 
                 public void Dispose()
@@ -43,6 +48,7 @@ namespace MixerBoard
 
                 public void SetVolume(float volume)
                 {
+                        simpleAudioVolume.SetMasterVolume(volume, guid);
                 }
 
                 public unsafe void OnDisplayNameChanged(PCWSTR NewDisplayName, Guid* EventContext)
@@ -55,12 +61,8 @@ namespace MixerBoard
 
                 public unsafe void OnSimpleVolumeChanged(float NewVolume, BOOL NewMute, Guid* EventContext)
                 {
-                        if (guid != *EventContext)
-                        {
-                                Volume = NewVolume;
-                                PropertyChanged.Raise(this, nameof(Volume));
-                        }
-
+                        Volume = NewVolume;
+                        PropertyChanged.Raise(this, nameof(Volume));
                 }
 
                 public unsafe void OnChannelVolumeChanged(uint ChannelCount, float* NewChannelVolumeArray, uint ChangedChannel, Guid* EventContext) { }

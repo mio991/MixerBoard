@@ -1,6 +1,6 @@
-﻿IUnknown
-CoCreateInstance
+﻿CoCreateInstance
 IMMDeviceEnumerator
 MMDeviceEnumerator
 IAudioEndpointVolume
 IAudioSessionManager2
+IAudioSessionControl2
